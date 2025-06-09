@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -393,7 +394,7 @@ public class ModernWebServer
             string body = await reader.ReadToEndAsync();
 
             // 记录日志或打印
-            Console.WriteLine($"[通知] 收到推送: {body}");
+            Debug.WriteLine($"[通知] 收到推送: {body}");
 
             // 可选：校验是否为标准JSON
             try
@@ -403,7 +404,7 @@ public class ModernWebServer
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"解析JSON失败: {ex.Message}");
+                Debug.WriteLine($"解析JSON失败: {ex.Message}");
                 ctx.Response.StatusCode = 400;
                 await ctx.Response.WriteAsync("{\"code\":400,\"msg\":\"Invalid JSON.\"}");
                 return;
