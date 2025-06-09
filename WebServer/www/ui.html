@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>业务功能可视化演示 - ModernWebServer</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <style>
+        .tab-content { border:1px solid #eee; padding:20px; margin-bottom:30px; }
+        pre { background:#f8f8f8; padding:8px 10px; }
+        body {padding: 2vw;}
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ModernWebServer <small class="text-muted">业务UI可视化演示</small></h1>
+    <ul class="nav nav-tabs my-3" id="mainTabs" role="tablist">
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#home" role="tab">首页/多语言</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#api" role="tab">接口调试</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#file" role="tab">文件上传/下载</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ws" role="tab">WebSocket</a></li>
+    </ul>
+    <div class="tab-content">
+        <!-- 首页/多语言 -->
+        <div class="tab-pane fade show active" id="home" role="tabpanel">
+            <div class="mb-2">
+                <b>多语言演示：</b>
+                <button class="btn btn-sm btn-outline-primary" onclick="setLang('zh')">中文</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="setLang('en')">English</button>
+            </div>
+            <blockquote class="blockquote">
+                <div id="intro"></div>
+                <footer class="blockquote-footer"><span id="ver"></span></footer>
+            </blockquote>
+        </div>
+        <!-- API调试 -->
+        <div class="tab-pane fade" id="api" role="tabpanel">
+            <form class="row g-2 align-items-center" id="api-form" onsubmit="callAnyApi();return false;">
+                <div class="col-auto">
+                  <select id="api-method" class="form-select form-select-sm">
+                      <option>GET</option>
+                      <option>POST</option>
+                  </select>
+                </div>
+                <div class="col-auto">
+                  <input id="a-url" class="form-control form-control-sm" value="/api/hello" placeholder="API地址" style="width: 200px;">
+                </div>
+                <div class="col-auto">
+                  <button type="submit" class="btn btn-primary btn-sm">请求</button>
+                </div>
+                <div class="col-auto">
+                  <input id="a-token" class="form-control form-control-sm" placeholder="Token(可选)">
+                </div>
+            </form>
+            <div class="mt-2 mb-2">
+                <textarea id="a-body" class="form-control" style="resize:vertical;min-height:30px" placeholder="若为POST可填写body"></textarea>
+            </div>
+            <label>响应：</label>
+            <pre id="a-ret" class="border"></pre>
+        </div>
+        <!-- 文件上传/下载 -->
+        <div class="tab-pane fade" id="file" role="tabpanel">
+            <div class="row g-2 align-items-center mb-2">
+                <div class="col-auto">
+                  <input id="file-down" class="form-control form-control-sm" value="demo.txt" placeholder="文件名"/>
+                </div>
+                <div class="col-auto"><button onclick="fileDown()" class="btn btn-success btn-sm">下载</button></div>
+            </div>
+            <form id="upform" enctype="multipart/form-data" class="row g-2 align-items-center">
+                <div class="col-auto">
+                  <input type="file" id="file-up" class="form-control form-control-sm" name="file">
+                </div>
+                <div class="col-auto">
+                  <input type="text" name="desc" class="form-control form-control-sm" placeholder="附加文本(可选)">
+                </div>
+                <div class="col-auto"><button type="submit" class="btn btn-info btn-sm">上传</button></div>
+            </form>
+            <label>结果：</label>
+            <pre id="f-ret" class="border"></pre>
+        </div>
+        <!-- WS -->
+        <div class="tab-pane fade" id="ws" role="tabpanel">
+            <div class="row g-2 align-items-center mb-2">
+                <div class="col-auto"><input id="w-url" class="form-control form-control-sm" value="ws://localhost:8080/ws1"></div>
+                <div class="col-auto"><button onclick="wsC()" class="btn btn-info btn-sm">连接</button></div>
+                <div class="col-auto"><button onclick="wsClose()" class="btn btn-outline-danger btn-sm">断开</button></div>
+            </div>
+            <div class="input-group mb-2" style="max-width:340px;">
+                <input id="w-msg" class="form-control" placeholder="输入内容">
+                <button class="btn btn-primary" onclick="wsS()">发送</button>
+            </div>
+            <label>交互日志：</label>
+            <pre id="w-log" class="border" style="min-height:70px;max-height:250px;overflow-y:auto"></pre>
+        </div>
+    </div>
+    <div class="text-end"><small class="text-secondary">ModernWebServer UI Template &copy; 2024</small></div>
+</div>
+<script src="/js/jquery.min.js"></script>
+<script src="/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 多语言
+    let lang = "zh";
+    const i18n = {
+        zh: {intro:"欢迎使用UI演示-支持接口调试/文件上传/下载/WebSocket通信等。所有前端文件均可直接在 static 目录下按需更改、可视化展示，无须后端变更。"},
+        en: {intro:"Welcome! Visual UI demo with API testing/file upload/download/WebSocket, all UI files are hot swap in static folder, no backend change needed."}
+    };
+    function setLang(l){
+        lang=l;
+        $("#intro").text(i18n[lang].intro);
+        $("#ver").text("版本 v1.0 | 当前语言:" + (lang=="zh"?"中文":"English"));
+    }
+    setLang(lang);
+
+    // API调试
+    function callAnyApi() {
+        let url = $("#a-url").val();
+        let method = $("#api-method").val();
+        let token = $("#a-token").val();
+        let opts = { method, headers:{} };
+        if(token) opts.headers["Authorization"]=token;
+        if(method=="POST") opts.body=$("#a-body").val();
+
+        $("#a-ret").removeClass("bg-danger bg-success").text("等待响应...");
+        fetch(url, opts)
+            .then(async r=>{
+                let txt = await r.text();
+                $("#a-ret").text(txt)
+                    .removeClass("bg-danger").addClass(r.ok ? "bg-success" : "bg-danger");
+            })
+            .catch(e=>{
+                $("#a-ret").text("请求出错：" + e).addClass("bg-danger");
+            });
+    }
+
+    // 文件服务
+    function fileDown() {
+        let f=$("#file-down").val().trim();
+        if(f) window.open("/api/download/"+encodeURIComponent(f),"down");
+        else alert("请输入文件名");
+    }
+    $("#upform").on("submit",function(e){
+        e.preventDefault();
+        let fileInput = $("#file-up")[0];
+        if(!fileInput.files.length) { $("#f-ret").text("请选择文件"); return;}
+        let form = new FormData(this);
+        fetch("/api/upload", {method:"POST", body:form})
+            .then(r=>r.text()).then(t=>$("#f-ret").text(t));
+    });
+
+    // WebSocket
+    let ws;
+    function wsC() {
+        let u=$("#w-url").val();
+        if(ws) try{ws.close()}catch(e){}
+        ws = new WebSocket(u);
+        ws.onopen=()=>logws("WS连接已建立",true);
+        ws.onmessage=e=>logws("[收到] "+e.data);
+        ws.onerror=e=>logws("连接出错","err");
+        ws.onclose=()=>logws("连接已关闭","warn");
+    }
+    function wsS() {
+        if(ws && ws.readyState==1)
+            ws.send($("#w-msg").val());
+        else
+            logws("请先连接WebSocket","err");
+    }
+    function wsClose(){
+        if(ws) ws.close();
+    }
+    function logws(msg,type){
+        let prefix = (new Date()).toLocaleTimeString()+" ";
+        let color = type=='err' ? "red" : type=='warn' ? "orange" : "";
+        $("#w-log").append($("<div>").css("color",color).text(prefix+msg));
+        $("#w-log").scrollTop(99999);
+    }
+</script>
+</body>
+</html>
