@@ -410,6 +410,7 @@ public class ModernWebServer
             }
 
             // 响应
+            ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync("{\"code\":200,\"msg\":\"通知已接收\"}");
         });
