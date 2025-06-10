@@ -31,7 +31,7 @@ namespace Demo
                         // 日志信息可输出到某个多行文本框
                         Console.WriteLine(msg);
                     })))
-                .SetStaticFolder(@"F:\XiangMuYuanMa\C#(WebServer)\WebServer\www") // 你的静态目录（确保存在）
+                .SetStaticFolder(@"G:\XiangMuYuanMa\C#_WebServer\WebServer\www") // 你的静态目录（确保存在）
                 .WithCors();
 
             // 注册API/WS等扩展演示
